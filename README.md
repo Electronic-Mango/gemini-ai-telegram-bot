@@ -26,7 +26,12 @@ cp .env.example .env
 
 ### Telegram bot
 
-Only required parameter is a [bot token](https://core.telegram.org/bots#creating-a-new-bot).
+For the bot to work you need:
+
+* [Telegram app API ID and hash](https://telethon-01914.readthedocs.io/en/latest/extra/basic/creating-a-client.html#creating-a-client)
+* [Telegram bot token](https://core.telegram.org/bots#creating-a-new-bot)
+
+You can check how to create a bot and access its token [bot token](https://core.telegram.org/bots#creating-a-new-bot).
 
 You can also restrict who can access the bot via `ALLOWED_USERNAMES`.
 You can specify multiple usernames delimited by space.
@@ -36,8 +41,10 @@ You can also define max response length in characters via `MAX_MESSAGE_LENGTH`.
 Bot responses can be up to 4096 characters long, that value is used by default if this parameter is absent.
 
 ```dotenv
+API_ID='<your secret app API ID>'
+API_HASH='<your secret app API hash>'
 BOT_TOKEN='<your secret bot token>'
-ALLOWED_USERNAMES='myusername friendusername'
+ALLOWED_USERNAMES='@myusername @friendusername'
 MAX_MESSAGE_LENGTH=<custom max response length>
 ```
 
