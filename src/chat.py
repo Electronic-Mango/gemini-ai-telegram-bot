@@ -5,7 +5,7 @@ from os import getenv
 from typing import Iterable
 
 from dotenv import load_dotenv
-from google.generativeai import GenerativeModel, configure, get_file, upload_file
+from google.generativeai import GenerationConfig, GenerativeModel, configure, get_file, upload_file
 from google.generativeai.types import File, HarmBlockThreshold
 from google.generativeai.types.retriever_types import State
 
@@ -17,12 +17,14 @@ NO_CONTENT_ERROR_MESSAGE = "Cannot respond without any information!"
 API_KEY = getenv("GEMINI_API_KEY")
 MODEL = getenv("GEMINI_MODEL", "gemini-1.5-flash")
 SYSTEM_INSTRUCTION = getenv("GEMINI_SYSTEM_INSTRUCTION")
+GEMINI_OUTPUT_LENGTH = int(getenv("GEMINI_OUTPUT_LENGTH", 800))
 
 configure(api_key=API_KEY)
 model = GenerativeModel(
     model_name=MODEL,
     system_instruction=SYSTEM_INSTRUCTION,
     safety_settings=HarmBlockThreshold.BLOCK_NONE,
+    generation_config=GenerationConfig(max_output_tokens=GEMINI_OUTPUT_LENGTH),
 )
 chats = defaultdict(model.start_chat)
 

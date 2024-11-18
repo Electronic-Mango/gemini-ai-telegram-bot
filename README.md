@@ -60,10 +60,12 @@ GEMINI_API_KEY='<your secret API key>'
 Through `.env` you can also configure other parameters:
 * `GEMINI_MODEL` - which [model](https://ai.google.dev/gemini-api/docs/models/gemini) to use (`gemini-1.5-flash` is used by default)
 * `GEMINI_SYSTEM_INSTRUCTION` - [system instruction](https://ai.google.dev/gemini-api/docs/system-instructions?lang=python)
+* `GEMINI_OUTPUT_LENGTH` - [maximum number of AI API output tokens](https://ai.google.dev/gemini-api/docs/tokens?lang=python) (around 800 should fit in standard Telegram message, but might cut responses)
 
 ```dotenv
 GEMINI_MODEL='gemini-1.5-flash-8b'
 GEMINI_SYSTEM_INSTRUCTION='You are a helpful assistant.'
+GEMINI_OUTPUT_LENGTH=800
 ```
 
 
