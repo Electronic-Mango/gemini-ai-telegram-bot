@@ -1,95 +1,64 @@
-from collections import defaultdict, namedtuple
+from asyncio import sleep
+from collections import defaultdict
+from io import BytesIO
 from os import getenv
+from typing import Iterable
 
 from dotenv import load_dotenv
-from openai import AsyncOpenAI, RateLimitError
-from openai.types.chat import ChatCompletion
+from google.generativeai import GenerativeModel, configure, get_file, upload_file
+from google.generativeai.types import File, HarmBlockThreshold
+from google.generativeai.types.retriever_types import State
 
 load_dotenv()
 
-Message = namedtuple("Message", ["role", "content"])
+WELCOME_MESSAGE_REQUEST = "Show a welcome message explaining who you are and what you can do."
+NO_CONTENT_ERROR_MESSAGE = "Cannot respond without any information!"
 
-WELCOME_MESSAGE = "Show a welcome message explaining who you are and what you can do."
-RATE_LIMIT_MESSAGE = "Rate limit reached, try again in 20s."
+API_KEY = getenv("GEMINI_API_KEY")
+MODEL = getenv("GEMINI_MODEL", "gemini-1.5-flash")
+SYSTEM_INSTRUCTION = getenv("GEMINI_SYSTEM_INSTRUCTION")
 
-TOKEN = getenv("OPENAI_TOKEN")
-MODEL = getenv("OPENAI_MODEL")
-SYSTEM_MESSAGE = getenv("OPENAI_SYSTEM_MESSAGE")
-INITIAL_MESSAGE = getenv("OPENAI_INITIAL_MESSAGE")
-CONTEXT_LIMIT = getenv("OPENAI_CONTEXT_LIMIT")
-
-initial_prompt = [Message("system", SYSTEM_MESSAGE), Message("user", INITIAL_MESSAGE)]
-conversations = defaultdict(list)
-custom_prompts = defaultdict(lambda: initial_prompt)
-
-client = AsyncOpenAI(api_key=TOKEN)
+configure(api_key=API_KEY)
+model = GenerativeModel(
+    model_name=MODEL,
+    system_instruction=SYSTEM_INSTRUCTION,
+    safety_settings=HarmBlockThreshold.BLOCK_NONE,
+)
+chats = defaultdict(model.start_chat)
 
 
-async def initial_message(chat_id: int) -> str | None:
-    return await next_message(chat_id, WELCOME_MESSAGE, use_conversation=False)
-
-
-async def next_message(chat_id: int, text: str, image_urls: list[str] = None, use_conversation: bool = True) -> str:
-    if not image_urls:
-        image_urls = []
-    prompt = custom_prompts[chat_id]
-    conversation = conversations[chat_id] if use_conversation else []
-    new_message = _prepare_new_message(text, image_urls)
-    messages = [msg._asdict() for msg in [*prompt, *conversation, new_message] if msg.content]
-    response = await _get_response(messages)
-    if not response:
-        return RATE_LIMIT_MESSAGE
-    _store_message(conversation, new_message)
-    response_message = _parse_response(response)
-    _store_message(conversation, response_message)
-    return response_message.content
-
-
-def _prepare_new_message(text: str, image_urls: list[str]) -> Message:
-    if not image_urls:
-        return Message("user", text)
-    text_content = [{"type": "text", "text": text}] if text else []
-    image_contents = [{"type": "image_url", "image_url": {"url": f"{url}"}} for url in image_urls]
-    content = text_content + image_contents
-    return Message("user", content)
+async def initial_message() -> str | None:
+    response = await model.generate_content_async(WELCOME_MESSAGE_REQUEST)
+    return response.text
 
 
 def reset_conversation(chat_id: int) -> None:
-    conversations.pop(chat_id, None)
+    chats.pop(chat_id, None)
 
 
-def store_custom_prompt(chat_id: int, prompt: str) -> None:
-    custom_prompts[chat_id] = [Message("system", prompt), Message("user", prompt)]
+async def next_message(chat_id: int, text: str, files: Iterable[tuple[BytesIO, str]]) -> str:
+    content = [file for data in files if (file := await _prepare_file(*data))] + [text or ""]
+    if not any(content):
+        return NO_CONTENT_ERROR_MESSAGE
+    return await _send_message(chat_id, content)
 
 
-def remove_custom_prompt(chat_id: int) -> None:
-    if chat_id in custom_prompts:
-        custom_prompts.pop(chat_id, None)
+async def _prepare_file(data: BytesIO, mime_type: str) -> File | None:
+    file = await _upload_file(data, mime_type)
+    return file if file.state.value == State.STATE_ACTIVE else None
 
 
-def remove_prompt(chat_id: int) -> None:
-    store_custom_prompt(chat_id, None)
+async def _upload_file(data: BytesIO, mime_type: str) -> File:
+    file = upload_file(data, mime_type=mime_type)
+    while file.state.value == State.STATE_PENDING_PROCESSING:
+        await sleep(1)
+        file = get_file(file.name)
+    return file
 
 
-def get_custom_prompt(chat_id: int) -> str | None:
-    return custom_prompts[chat_id][-1].content if chat_id in custom_prompts else None
-
-
-async def _get_response(messages: list[dict[str, str]]) -> ChatCompletion | None:
+async def _send_message(chat_id: int, content: list[str | File]) -> str:
     try:
-        return await client.chat.completions.create(model=MODEL, messages=messages)
-    except RateLimitError:
-        return None
-
-
-def _store_message(conversation: list[Message], message: Message) -> None:
-    conversation.append(message)
-    if CONTEXT_LIMIT and len(conversation) > int(CONTEXT_LIMIT):
-        conversation.pop(0)
-
-
-def _parse_response(response: ChatCompletion) -> Message:
-    message = response.choices[0].message
-    content = message.content
-    role = message.role
-    return Message(role, content)
+        response = await chats[chat_id].send_message_async(content)
+        return response.text
+    except Exception as e:
+        return str(e)

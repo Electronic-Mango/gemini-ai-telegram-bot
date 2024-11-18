@@ -1,8 +1,8 @@
-# Simple OpenAI text model Telegram bot
+# Simple Gemini AI Telegram bot
 
-A simple and unofficial Telegram bot wrapping [OpenAI API](https://openai.com/blog/openai-api/) text models (like [ChatGPT](https://openai.com/blog/chatgpt)), build with [`python-telegram-bot`](https://github.com/python-telegram-bot/python-telegram-bot)!
+A simple and unofficial Telegram bot wrapping [Gemini AI API](https://ai.google.dev/), build with [`python-telegram-bot`](https://github.com/python-telegram-bot/python-telegram-bot)!
 
-Just start a conversation and all messages in the chat will be used as inputs for ChatGPT.
+Just start a conversation and all messages in the chat will be used as inputs for Gemini AI.
 
 Conversation/context is not stored permanently and will be removed when the bot is restarted.
 
@@ -10,7 +10,7 @@ Conversation/context is not stored permanently and will be removed when the bot 
 
 ## Requirements
 
-This bot was built with `Python 3.11`, [`python-telegram-bot`](https://github.com/python-telegram-bot/python-telegram-bot) and [`openai-python`](https://github.com/openai/openai-python).
+This bot was built with `Python 3.11`, [`python-telegram-bot`](https://github.com/python-telegram-bot/python-telegram-bot) and [`generative-ai-python`](https://github.com/google-gemini/generative-ai-python).
 Full list of Python requirements is in the `requirements.txt` file, you can use it to install all of them.
 
 
@@ -42,30 +42,21 @@ MAX_MESSAGE_LENGTH=<custom max response length>
 ```
 
 
-### OpenAI API
+### Gemini AI API
 
-One required parameter is [API key](https://platform.openai.com/account/api-keys).
+One required parameter is [API key](https://ai.google.dev/gemini-api/docs/api-key).
 
 ```dotenv
-OPENAI_TOKEN='<your secret API key>'
+GEMINI_API_KEY='<your secret API key>'
 ```
 
 Through `.env` you can also configure other parameters:
-* `OPENAI_MODEL` - which model to use (gpt-3.5-turbo is used by default)
-* `OPENAI_SYSTEM_MESSAGE` - system message
-* `OPENAI_CONTEXT_LIMIT` - how many messages will be kept in the context aside from prompt, all messages will be kept if empty
-* `OPENAI_INITIAL_MESSAGE` - additional message added after system message to all conversations, can be empty for no additional messages
-* `OPENAI_LOG` - log level of OpenAI API, either `debug` or `info`, can be empty for no additional logging configuration
-
-Note that `gpt-3.5-turbo` [doesn't pay strong attention to system message](https://platform.openai.com/docs/guides/chat/instructing-chat-models), so changing it might not provide significant changes to responses.
-You can use `OPENAI_INITIAL_MESSAGE` to tweak initial behaviour of the model.
+* `GEMINI_MODEL` - which [model](https://ai.google.dev/gemini-api/docs/models/gemini) to use (`gemini-1.5-flash` is used by default)
+* `GEMINI_SYSTEM_INSTRUCTION` - [system instruction](https://ai.google.dev/gemini-api/docs/system-instructions?lang=python)
 
 ```dotenv
-OPENAI_MODEL='gpt-3.5-turbo'
-OPENAI_SYSTEM_MESSAGE='You are a helpful assistant.'
-OPENAI_CONTEXT_LIMIT=1000
-OPENAI_INITIAL_MESSAGE='You are a helpful assistant acting like 18th century butler,'
-OPENAI_LOG='info'
+GEMINI_MODEL='gemini-1.5-flash-8b'
+GEMINI_SYSTEM_INSTRUCTION='You are a helpful assistant.'
 ```
 
 
@@ -73,11 +64,6 @@ OPENAI_LOG='info'
 
 * `/start` - prints initial message returned from the model for just system message and optional initial message, doesn't impact conversation context
 * `/reset` - resets current conversation and removes all context, other than system message
-* `/promptset` - set new custom prompt, changes both system message and custom initial message (overwrites both `OPENAI_SYSTEM_MESSAGE` and `OPENAI_INITIAL_MESSAGE`)
-* `/promptreset` - restore prompt to default
-* `/promptget` - get custom prompt, won't respond with default one to avoid leaking configuration to users
-* `/promptremove` - force-remove any prompts from the conversation, including one defined in configuration files
-* `/cancel` - cancels ongoing operation, applies only to `/promptset`
 
 
 ## Running the bot
@@ -88,7 +74,7 @@ You can run the bot from the source code directly, or in a Docker container.
 ### From source code
 
 1. Create a Telegram bot via [BotFather](https://core.telegram.org/bots#6-botfather)
-2. Create [OpenAI API key](https://platform.openai.com/account/api-keys)
+2. Create [Gemini AI API key](https://ai.google.dev/gemini-api/docs/api-key)
 3. Install all packages from `requirements.txt`
 4. Fill `.env` file
 5. Run `main.py` file with Python
@@ -97,7 +83,7 @@ You can run the bot from the source code directly, or in a Docker container.
 ### Docker
 
 1. Create a Telegram bot via [BotFather](https://core.telegram.org/bots#6-botfather)
-2. Create [OpenAI API key](https://platform.openai.com/account/api-keys)
+2. Create [Gemini AI API key](https://ai.google.dev/gemini-api/docs/api-key)
 3. Fill `.env` file
 4. Run `docker compose up -d --build` in terminal
 
@@ -105,16 +91,8 @@ Note that `.env` file is used only for loading environment variables into Docker
 The file itself isn't added to the container.
 
 
-
-## Vision
-
-Bot can respond to messages containing a **single** photo.
-Uploading more photos will result in bot responding to each one separately.
-Other messages than photo or text are ignored.
-
-
 ## Disclaimer
 
-This bot is in no way affiliated, associated, authorized, endorsed by, or in any way officially connected with OpenAI.
+This bot is in no way affiliated, associated, authorized, endorsed by, or in any way officially connected with Gemini AI or Google.
 This is an independent and unofficial project.
 Use at your own risk.
