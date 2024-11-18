@@ -8,7 +8,11 @@ services:
     build: .
     container_name: gemini-ai-telegram-bot
     restart: unless-stopped
+    volumes:
+      - ./persistence/:/persistence/
     env_file: .env
+    environment:
+      - SESSION=/persistence/gemini
 
 networks:
   default:

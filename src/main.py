@@ -1,5 +1,6 @@
 from io import BytesIO
 from os import getenv
+from pathlib import Path
 
 from dotenv import load_dotenv
 from telethon import TelegramClient
@@ -9,13 +10,13 @@ from telethon.tl.patched import Message
 from chat import initial_message, next_message, reset_conversation
 
 load_dotenv()
-SESSION = "Gemini AI"
+SESSION = getenv("SESSION", "gemini")
 API_ID = int(getenv("API_ID", 0))
 API_HASH = getenv("API_HASH", "")
 BOT_TOKEN = getenv("BOT_TOKEN", "")
 ALLOWED_USERS = getenv("ALLOWED_USERNAMES", "").split()
 
-bot = TelegramClient(SESSION, API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+bot = TelegramClient(Path(SESSION), API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
 
 def main() -> None:
