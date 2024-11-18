@@ -1,6 +1,7 @@
 from io import BytesIO
 from os import getenv
 from pathlib import Path
+from textwrap import wrap
 
 from dotenv import load_dotenv
 from telethon import TelegramClient
@@ -15,6 +16,7 @@ API_ID = int(getenv("API_ID", 0))
 API_HASH = getenv("API_HASH", "")
 BOT_TOKEN = getenv("BOT_TOKEN", "")
 ALLOWED_USERS = getenv("ALLOWED_USERNAMES", "").split()
+MAX_MESSAGE_LENGTH = int(getenv("MAX_MESSAGE_LENGTH", 4096))
 
 bot = TelegramClient(Path(SESSION), API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
@@ -27,7 +29,7 @@ def main() -> None:
 async def start(event: NewMessage.Event) -> None:
     async with bot.action(event.chat_id, "typing"):
         message = await initial_message()
-        await event.respond(message)
+        await send(event, message)
     raise StopPropagation
 
 
@@ -35,7 +37,7 @@ async def start(event: NewMessage.Event) -> None:
 async def restart(event: NewMessage.Event) -> None:
     async with bot.action(event.chat_id, "typing"):
         reset_conversation(event.chat_id)
-        await event.respond("Conversation restarted.")
+        await send(event, "Conversation restarted.")
     raise StopPropagation
 
 
@@ -46,7 +48,7 @@ async def talk(event: NewMessage.Event) -> None:
         prompt = message.text
         files = await get_file(message)
         response = await next_message(event.chat_id, prompt, files)
-        await event.respond(response)
+        await send(event, response)
 
 
 async def get_file(message: Message) -> list[tuple[BytesIO, str]]:
@@ -55,6 +57,19 @@ async def get_file(message: Message) -> list[tuple[BytesIO, str]]:
     media = await message.download_media(file=bytes)
     mime_type = file.mime_type
     return [(BytesIO(media), mime_type)]
+
+async def send(event: NewMessage.Event, text: str) -> None:
+    parts = wrap(
+        text.strip(),
+        MAX_MESSAGE_LENGTH,
+        tabsize=4,
+        break_long_words=False,
+        replace_whitespace=False,
+        break_on_hyphens=False,
+        drop_whitespace=False,
+    )
+    for partial in parts:
+        await event.respond(partial.strip())
 
 
 if __name__ == "__main__":
