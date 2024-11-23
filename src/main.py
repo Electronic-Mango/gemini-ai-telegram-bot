@@ -8,7 +8,9 @@ from telethon import TelegramClient
 from telethon.events import NewMessage, StopPropagation
 from telethon.tl.patched import Message
 
-from chat import initial_message, next_message, reset_conversation
+from ai.chat import chat_history, initial_message, next_message, reset_conversation
+from ai.images import generate_image
+from ai.response_type import requested_image_prompt
 
 load_dotenv()
 SESSION = getenv("SESSION", "gemini")
@@ -43,12 +45,18 @@ async def restart(event: NewMessage.Event) -> None:
 
 @bot.on(NewMessage(from_users=ALLOWED_USERS, incoming=True))
 async def talk(event: NewMessage.Event) -> None:
+    message = event.message
+    prompt = message.text
     async with bot.action(event.chat_id, "typing"):
-        message = event.message
-        prompt = message.text
-        files = await get_file(message)
-        response = await next_message(event.chat_id, prompt, files)
-        await send(event, response)
+        if not (image_prompt := await requested_image_prompt(prompt, chat_history(event.chat_id))):
+            files = await get_file(message)
+            response = await next_message(event.chat_id, prompt, files)
+            await send(event, response)
+            return
+        await send(event, "Generating image...")
+    async with bot.action(event.chat_id, "photo"):
+        image = await generate_image(image_prompt)
+        # Send image
 
 
 async def get_file(message: Message) -> list[tuple[BytesIO, str]]:
@@ -57,6 +65,7 @@ async def get_file(message: Message) -> list[tuple[BytesIO, str]]:
     media = await message.download_media(file=bytes)
     mime_type = file.mime_type
     return [(BytesIO(media), mime_type)]
+
 
 async def send(event: NewMessage.Event, text: str) -> None:
     parts = wrap(
