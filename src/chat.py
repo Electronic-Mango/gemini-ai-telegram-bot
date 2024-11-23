@@ -5,7 +5,6 @@ from os import getenv
 from typing import Iterable
 
 from dotenv import load_dotenv
-from google.ai.generativelanguage_v1 import Content
 from google.generativeai import GenerationConfig, GenerativeModel, configure, get_file, upload_file
 from google.generativeai.types import File, HarmBlockThreshold
 from google.generativeai.types.retriever_types import State
@@ -44,10 +43,6 @@ async def next_message(chat_id: int, text: str, files: Iterable[tuple[BytesIO, s
     if not any(content):
         return NO_CONTENT_ERROR_MESSAGE
     return await _send_message(chat_id, content)
-
-
-def chat_history(chat_id: int) -> list[Content]:
-    return chats[chat_id].history
 
 
 async def _prepare_file(data: BytesIO, mime_type: str) -> File | None:
